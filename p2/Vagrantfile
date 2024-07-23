@@ -1,0 +1,40 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+LOCAL_USER = ENV['USER']
+USER_SERVER = ENV['USER'] + "S"
+USER_SERVERW = ENV['USER'] + "SW"
+print "server is : #{USER_SERVER}\n"
+print "server worker is : #{USER_SERVERW}\n"
+
+Vagrant.configure("2") do |config|
+    config.vm.box = "ubuntu/jammy64"
+    config.vm.boot_timeout = 900
+    # Kubernetes API Access
+    config.vm.network "forwarded_port", guest: 6443, host:1234
+    config.vm.network "forwarded_port", guest: 80, host: 8080
+    
+    config.vm.define "#{USER_SERVER}" do |server|
+        server.vm.hostname = "#{USER_SERVER}"
+        server.vm.network "private_network", ip: "192.168.56.110"
+
+        server.vm.provider "virtualbox" do |vb|
+            vb.name = "#{USER_SERVER}"
+            vb.gui = true
+            vb.memory = "2048"
+            vb.cpus = "2"
+        end
+
+        server.vm.provision "shell", privileged: true, path: "scripts/server.sh"
+        server.vm.provision "shell", privileged: true, inline: <<-SHELL
+            kubectl apply -f /vagrant/deployment/app1.yaml
+            echo -e "APP1 DONE"
+            kubectl apply -f /vagrant/deployment/app2.yaml
+            echo -e "APP2 DONE"
+            kubectl apply -f /vagrant/deployment/app3.yaml
+            echo -e "APP3 DONE"
+            kubectl apply -f /vagrant/deployment/ingress.yaml
+            echo -e "INGRESS DONE"
+        SHELL
+    end
+end

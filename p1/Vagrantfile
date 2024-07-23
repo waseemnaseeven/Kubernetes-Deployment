@@ -1,0 +1,36 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+LOCAL_USER = ENV['USER']
+USER_SERVER = ENV['USER'] + "S"
+USER_SERVERW = ENV['USER'] + "SW"
+print "server is : #{USER_SERVER}\n"
+print "server worker is : #{USER_SERVERW}\n"
+
+Vagrant.configure("2") do | config |
+    config.vm.box = "ubuntu/bionic64"
+    config.vm.boot_timeout = 900
+    
+    config.vm.define "#{USER_SERVER}" do |server|
+        server.vm.hostname = "#{USER_SERVER}"
+        server.vm.network "private_network", ip: "192.168.56.110"
+
+        server.vm.provider "virtualbox" do |vb|
+            vb.name = "#{USER_SERVER}"
+            vb.memory = "2048"
+            vb.cpus = "2"
+        end
+        server.vm.provision "shell", privileged: true, path: "scripts/server.sh"
+    end
+
+    config.vm.define "#{USER_SERVERW}" do |worker|
+        worker.vm.hostname = "#{USER_SERVERW}"
+        worker.vm.network "private_network", ip: "192.168.56.111"
+        worker.vm.provider "virtualbox" do |vb|
+            vb.name = "#{USER_SERVERW}"
+            vb.memory = "2048"
+            vb.cpus = "2"
+        end
+        worker.vm.provision "shell", privileged: true, path: "scripts/worker.sh"
+    end
+end
